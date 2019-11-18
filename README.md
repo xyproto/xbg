@@ -18,7 +18,7 @@ A test-utility is included in `cmd/grumpybg/`.
 
 ## General info
 
-* Version: 0.1.0
+* Version: 0.1.1
 * License: MIT
 * Author: Alexander F. Rødseth &lt;xyproto@archlinux.org&gt;
 
