@@ -58,5 +58,5 @@ func SetWallpaper(imageFilename, mode string, verbose bool) error {
 }
 
 func main() {
-	SetWallpaper("grumpy-cat.png", "tile", true)
+	SetWallpaper("grumpy-cat.png", "zoom", true)
 }
