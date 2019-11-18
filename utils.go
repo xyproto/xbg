@@ -23,10 +23,6 @@ func which(executable string) string {
 	return p
 }
 
-func containsE(envVar, subString string) bool {
-	return strings.Contains(os.Getenv(envVar), subString)
-}
-
 func hasE(envVar string) bool {
 	return os.Getenv(envVar) != ""
 }
