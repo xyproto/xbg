@@ -70,7 +70,7 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 		mode = C.ImageMode(C.ModeCenter)
 	case "zoom", "zoomed", "fill", "max":
 		mode = C.ImageMode(C.ModeZoom)
-	case "scale", "scaled", "stretch", "stretched":
+	case "scale", "scaled", "stretch", "stretched", "":
 		mode = C.ImageMode(C.ModeScale)
 	default:
 		// for unsupported modes: "fit", "tiled" or anything
