@@ -6,7 +6,7 @@ addons:
       - build-essential
       - libx11-dev
       - libxmu-headers
-      - imlib2-dev
+      - libimlib2-dev
       - libxinerama-dev
 
 go:
