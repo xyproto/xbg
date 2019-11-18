@@ -7,9 +7,7 @@ addons:
       - libx11-dev
       - libxmu-headers
       - imlib2-dev
-      - x11proto-dev
-        #- libxcursor-dev
-        #- xbitmaps
+      - libxinerama-dev
 
 go:
     - "1.11"
