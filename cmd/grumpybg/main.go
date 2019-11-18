@@ -43,8 +43,8 @@ func SetWallpaper(imageFilename, mode string, verbose bool) error {
 				if strings.Contains(err.Error(), "invalid desktop wallpaper mode") {
 					return err
 				}
-				// Try the next one
-				continue
+				// This did not work out
+				return errors.New("could not use the X11 backend")
 			}
 		} else {
 			return nil
@@ -58,5 +58,5 @@ func SetWallpaper(imageFilename, mode string, verbose bool) error {
 }
 
 func main() {
-	SetWallpaper("grumpycat.png", "tile", true)
+	SetWallpaper("grumpy-cat.png", "tile", true)
 }
