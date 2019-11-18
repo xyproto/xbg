@@ -3,7 +3,7 @@
 package xbg
 
 // #cgo CFLAGS: -DXINERAMA
-// #cgo LDFLAGS: -lX11 -lImlib2 -lXinerama
+// #cgo LDFLAGS: -lX11 -lImlib2 -lXinerama -lm
 // #include "bgs.h"
 import "C"
 import (
