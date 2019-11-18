@@ -8,7 +8,8 @@ addons:
       - libxcursor-dev
       - xbitmaps
       - libxmu-headers
-      - libxpm-dev
+      - imlib2-dev
+      - xinerama-dev
 
 go:
     - "1.11"
