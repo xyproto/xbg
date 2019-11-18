@@ -5,11 +5,11 @@ addons:
     packages:
       - build-essential
       - libx11-dev
-      - libxcursor-dev
-      - xbitmaps
       - libxmu-headers
       - imlib2-dev
-      - xinerama-dev
+      - x11proto-dev
+        #- libxcursor-dev
+        #- xbitmaps
 
 go:
     - "1.11"
