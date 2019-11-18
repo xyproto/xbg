@@ -14,10 +14,12 @@ import (
 
 // X11 or Xorg windowmanager detector
 type X11 struct {
-	mode    C.ImageMode
+	mode    string
 	verbose bool
 	rotate  bool
 }
+
+var defaultMode = "scale"
 
 // Name returns the name of this window manager or desktop environment
 func (x *X11) Name() string {
@@ -43,16 +45,7 @@ func (x *X11) Running() bool {
 
 // SetMode will set the current way to display the wallpaper (stretched, tiled etc)
 func (x *X11) SetMode(mode string) {
-	switch mode {
-	case "center":
-		x.mode = C.ImageMode(C.ModeCenter)
-	case "zoom":
-		x.mode = C.ImageMode(C.ModeZoom)
-	case "scale":
-		fallthrough
-	default:
-		x.mode = C.ImageMode(C.ModeScale)
-	}
+	x.mode = mode
 }
 
 // SetVerbose can be used for setting the verbose field to true or false.
@@ -73,11 +66,24 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 		return fmt.Errorf("no such file: %s", imageFilename)
 	}
 
+	var mode C.ImageMode
+	switch x.mode {
+	case "center":
+		mode = C.ImageMode(C.ModeCenter)
+	case "zoom", "zoomed", "fill", "max":
+		mode = C.ImageMode(C.ModeZoom)
+	case "scale", "scaled", "stretch", "stretched":
+		mode = C.ImageMode(C.ModeScale)
+	default:
+		// for unsupported modes: "fit", "tiled" or anything
+		return fmt.Errorf("unsupported desktop wallpaper mode for the X11 backend: %s", x.mode)
+	}
+
 	// Prepare a the image filename as a char* string
 	cFilename := C.CString(imageFilename)
 
 	// Set the background image, and intepret the returned string as a Go string
-	errString := C.GoString(C.SetBackground(cFilename, C.bool(x.rotate), x.mode, C.bool(x.verbose)))
+	errString := C.GoString(C.SetBackground(cFilename, C.bool(x.rotate), mode, C.bool(x.verbose)))
 
 	// Free the C string
 	C.free(unsafe.Pointer(cFilename))

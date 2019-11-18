@@ -46,5 +46,7 @@ func SetWallpaper(imageFilename, mode string, verbose bool) error {
 }
 
 func main() {
+	//SetWallpaper("grumpy-cat.png", "center", true)
 	SetWallpaper("grumpy-cat.png", "zoom", true)
+	//SetWallpaper("grumpy-cat.png", "scale", true)
 }
