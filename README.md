@@ -4,8 +4,8 @@ Go module for setting the background image under X (Xorg/X11).
 
 * Can be used together with window managers like `i3` and `AwesomeWM`.
 * Intended to be used by [wallutils](https://github.com/xyproto/wallutils).
-* Based on code from [bgs](https://github.com/Gottox/bgs) by Enno Gottox Boland, which uses Imlib2.
 * By using `New()` and `.Release()`, the X11 struct is thread-safe. The `SetWallpaper` function uses these.
+* Uses `setroot` directly, by having it as a git submodule and generating a header file with `go generate`.
 
 ## Example
 

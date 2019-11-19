@@ -2,13 +2,16 @@
 
 package xbg
 
-// #cgo CFLAGS: -DXINERAMA
+//go:generate sh -c "sed \"s/int main/int setroot_main/g\" setroot/setroot.c > setroot.h"
+
+// #cgo CFLAGS: -DHAVE_LIBXINERAMA
 // #cgo LDFLAGS: -lX11 -lImlib2 -lXinerama -lm
-// #include "bgs.h"
+// #include "setroot.h"
 import "C"
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"unsafe"
 )
@@ -115,37 +118,53 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 		return fmt.Errorf("no such file: %s", imageFilename)
 	}
 
-	var mode C.ImageMode
-	switch x.mode {
-	case "center":
-		mode = C.ImageMode(C.ModeCenter)
-	case "zoom", "zoomed", "fill", "max", "":
-		mode = C.ImageMode(C.ModeZoom)
-	case "scale", "scaled", "stretch", "stretched":
-		mode = C.ImageMode(C.ModeScale)
-	default:
-		x.mut.Unlock()
-		// for unsupported modes: "fit", "tiled" or anything
-		return fmt.Errorf("unsupported desktop wallpaper mode for the X11 backend: %s", x.mode)
-	}
+	//var mode C.fit_t
+	//switch x.mode {
+	//case "center":
+	//	mode = C.fit_t(C.CENTER)
+	//case "zoom", "zoomed", "fill", "max", "":
+	//	mode = C.fit_t(C.ZOOM)
+	//case "scale", "scaled", "stretch", "stretched":
+	//	mode = C.fit_t(C.STRETCH)
+	//case "fit":
+	//	mode = C.fit_t(C.FIT_AUTO)
+	//default:
+	//	x.mut.Unlock()
+	//	// for unsupported modes: "fit", "tiled" or anything
+	//	return fmt.Errorf("unsupported desktop wallpaper mode for the X11 backend: %s", x.mode)
+	//}
 
 	x.mut.Unlock()
 	x.mut.RLock()
 
-	// Prepare a the image filename as a char* string
-	cFilename := C.CString(imageFilename)
+	xdpy := (*C.Display)(C.XOpenDisplay(nil))
+	if xdpy == nil {
+		fmt.Fprintf(os.Stderr, "X11: unable to open display '%s'\n", C.GoString(C.XDisplayName(nil)))
+	}
+
+	args := []string{"prog", imageFilename}
+
+	// Prepare argv for C
+	// Thanks James, https://stackoverflow.com/a/21158598/131264
+	argv := make([]*C.char, len(args))
+	for i, s := range args {
+		cs := C.CString(s)
+		defer C.free(unsafe.Pointer(cs))
+		argv[i] = cs
+	}
+
+	retval := C.setroot_main(2, &argv[0])
 
 	// Set the background image, and intepret the returned string as a Go string
-	errString := C.GoString(C.SetBackground(cFilename, C.bool(x.rotate), mode, C.bool(x.verbose)))
+	//errString := C.GoString(C.SetBackground(cFilename, C.bool(x.rotate), mode, C.bool(x.verbose)))
 
 	// Free the C string
-	C.free(unsafe.Pointer(cFilename))
+	//C.free(unsafe.Pointer(cFilename))
 
 	x.mut.RUnlock()
 
-	// Return an error, if errString is not empty
-	if len(errString) > 0 {
-		return errors.New("could not open X11 display with XOpenDisplay: " + errString)
+	if retval != 0 {
+		return errors.New("could not set the background image with setroot")
 	}
 	return nil
 }

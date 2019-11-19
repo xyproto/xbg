@@ -12,3 +12,4 @@
 .vscode
 *.svg
 !img/*
+setroot.h
