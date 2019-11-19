@@ -33,38 +33,50 @@ static Imlib_Image images[LENGTH(monitors)];
 
 /* free images before exit */
 // returns nil or an error message
-char* cleanup(void)
+char* cleanup(bool verbose)
 {
     for (int i = 0; i < nimage; i++) {
         imlib_context_set_image(images[i]);
         imlib_free_image_and_decache();
     }
+
+
+    // Unlock X
+    if (verbose) printf("XUnlockDisplay\n");
+    XUnlockDisplay(dpy);
+
     return nil;
 }
 
 /* draw background to root */
 // returns nil or an error message
-char* drawbg(ImageMode mode, bool rotate)
+char* drawbg(ImageMode mode, bool rotate, bool verbose)
 {
     int i, w, h, nx, ny, nh, nw, tmp;
     double factor;
     Pixmap pm;
     Imlib_Image tmpimg, buffer;
 
+    if (verbose) printf("XCreatePixmap\n");
     pm = XCreatePixmap(dpy, root, sw, sh, DefaultDepth(dpy, DefaultScreen(dpy)));
     if (!(buffer = imlib_create_image(sw, sh))) {
         return "cannot allocate buffer";
     }
+    if (verbose) printf("imlib_context_set_image\n");
     imlib_context_set_image(buffer);
+    if (verbose) printf("imlib_image_fill_rectangle\n");
     imlib_image_fill_rectangle(0, 0, sw, sh);
+    if (verbose) printf("imlib_context_set_blend\n");
     imlib_context_set_blend(1);
     for (i = 0; i < nmonitor; i++) {
+        if (verbose) printf("imlib_context_set_image\n");
         imlib_context_set_image(images[i % nimage]);
         w = imlib_image_get_width();
         h = imlib_image_get_height();
         if (!(tmpimg = imlib_clone_image())) {
             return "cannot clone image";
         }
+        if (verbose) printf("imlib_context_set_image\n");
         imlib_context_set_image(tmpimg);
         if (rotate
             && ((monitors[i].w > monitors[i].h && w < h)
@@ -74,6 +86,7 @@ char* drawbg(ImageMode mode, bool rotate)
             w = h;
             h = tmp;
         }
+        if (verbose) printf("imlib_context_set_image\n");
         imlib_context_set_image(buffer);
         switch (mode) {
         case ModeCenter:
@@ -100,25 +113,39 @@ char* drawbg(ImageMode mode, bool rotate)
             nx = monitors[i].x + (monitors[i].w - nw) / 2;
             ny = monitors[i].y + (monitors[i].h - nh) / 2;
         }
+        if (verbose) printf("imlib_blend_image_onto_image\n");
         imlib_blend_image_onto_image(tmpimg, 0, 0, 0, w, h, nx, ny, nw, nh);
+        if (verbose) printf("imlib_context_set_image\n");
         imlib_context_set_image(tmpimg);
+        if (verbose) printf("imlib_free_image\n");
         imlib_free_image();
     }
+    if (verbose) printf("imlib_context_set_blend\n");
     imlib_context_set_blend(0);
+    if (verbose) printf("imlib_context_set_image\n");
     imlib_context_set_image(buffer);
+    if (verbose) printf("imlib_context_set_drawable\n");
     imlib_context_set_drawable(root);
+    if (verbose) printf("imlib_render_image_on_drawable\n");
     imlib_render_image_on_drawable(0, 0);
+    if (verbose) printf("imlib_context_set_drawable\n");
     imlib_context_set_drawable(pm);
+    if (verbose) printf("imlib_render_image_on_drawable\n");
     imlib_render_image_on_drawable(0, 0);
+    if (verbose) printf("XSetWindowBackgroundPixmap\n");
     XSetWindowBackgroundPixmap(dpy, root, pm);
+    if (verbose) printf("imlib_context_set_image\n");
     imlib_context_set_image(buffer);
+    if (verbose) printf("imlib_free_image_and_decache\n");
     imlib_free_image_and_decache();
+    if (verbose) printf("XFreePixmap\n");
     XFreePixmap(dpy, pm);
 }
 
 /* update screen and/or Xinerama dimensions */
-void updategeom(void)
+void updategeom(bool verbose)
 {
+    if (verbose) printf("updategeom\n");
 #ifdef XINERAMA
     int i;
     XineramaScreenInfo* info = nil;
@@ -141,11 +168,12 @@ void updategeom(void)
         monitors[0].w = sw;
         monitors[0].h = sh;
     }
+    if (verbose) printf("updategeom: done\n");
 }
 
 /* main loop */
 // returns either nil or an error message
-char* run(ImageMode mode, bool rotate)
+char* run(ImageMode mode, bool rotate, bool verbose)
 {
     XEvent ev;
 
@@ -153,16 +181,19 @@ char* run(ImageMode mode, bool rotate)
 
     bool running = false;
     for (;;) {
-        updategeom();
-        drawbg(mode, rotate);
+        updategeom(verbose);
+        drawbg(mode, rotate, verbose);
         if (!running) {
             break;
         }
+        if (verbose) printf("imlib_flush_loaders\n");
         imlib_flush_loaders();
+        if (verbose) printf("XNextEvent\n");
         XNextEvent(dpy, &ev);
         if (ev.type == ConfigureNotify) {
             sw = ev.xconfigure.width;
             sh = ev.xconfigure.height;
+            if (verbose) printf("imlib_flush_loaders\n");
             imlib_flush_loaders();
         }
     }
@@ -171,40 +202,60 @@ char* run(ImageMode mode, bool rotate)
 
 // setup returns either nil or an error message
 /* set up imlib and X */
-char* setup(const char* filename, const char* col)
+char* setup(const char* filename, const char* col, bool verbose)
 {
     Visual* vis;
     Colormap cm;
     XColor color;
     int i, screen;
 
+    if (verbose) printf("XInitThreads\n");
+    XInitThreads();
+
+    if (verbose) printf("Loading %s... ", filename);
+
     // TODO: Should multiple images be loaded for multiple monitors?
     /* Loading image */
     images[0] = imlib_load_image_without_cache(filename);
     nimage = 1;
     if (images[0] == nil) {
+        if (verbose) printf("failed\n");
         return "no image to draw";
     }
+    if (verbose) printf("ok\n");
+
+    // Lock X
+    if (verbose) printf("XLockDisplay\n");
+    XLockDisplay(dpy);
 
     /* set up X */
+    printf("Fetching default screen, visual, colormap and root window\n");
     screen = DefaultScreen(dpy);
     vis = DefaultVisual(dpy, screen);
     cm = DefaultColormap(dpy, screen);
     root = RootWindow(dpy, screen);
+
+    printf("XSelectInput\n");
     XSelectInput(dpy, root, StructureNotifyMask);
+
+    printf("Get Display Width and Height\n");
     sx = sy = 0;
     sw = DisplayWidth(dpy, screen);
     sh = DisplayHeight(dpy, screen);
 
+    printf("XAllocNamedColor\n");
     if (!XAllocNamedColor(dpy, cm, col, &color, &color)) {
         return "cannot allocate color";
     }
 
     /* set up Imlib */
+    printf("Set up Imlib\n");
     imlib_context_set_display(dpy);
     imlib_context_set_visual(vis);
     imlib_context_set_colormap(cm);
     imlib_context_set_color(color.red, color.green, color.blue, 255);
+
+    printf("setup complete\n");
 
     return nil;
 }
@@ -218,20 +269,22 @@ char* SetBackground(const char* filename, bool rotate, ImageMode mode, bool verb
     }
 
     const char* col = "#000000";
-    char* err = setup(filename, col);
+    char* err = setup(filename, col, verbose);
     if (err != nil) {
-        cleanup();
+        cleanup(verbose);
         return err;
     }
-    err = run(mode, rotate);
+    err = run(mode, rotate, verbose);
     if (err != nil) {
-        cleanup();
+        cleanup(verbose);
         return err;
     }
-    err = cleanup();
+    err = cleanup(verbose);
     if (err != nil) {
         return err;
     }
+
+    if (verbose) printf("XCloseDisplay\n");
     XCloseDisplay(dpy);
     return nil;
 }
