@@ -118,21 +118,24 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 		return fmt.Errorf("no such file: %s", imageFilename)
 	}
 
-	//var mode C.fit_t
-	//switch x.mode {
-	//case "center":
-	//	mode = C.fit_t(C.CENTER)
-	//case "zoom", "zoomed", "fill", "max", "":
-	//	mode = C.fit_t(C.ZOOM)
-	//case "scale", "scaled", "stretch", "stretched":
-	//	mode = C.fit_t(C.STRETCH)
-	//case "fit":
-	//	mode = C.fit_t(C.FIT_AUTO)
-	//default:
-	//	x.mut.Unlock()
-	//	// for unsupported modes: "fit", "tiled" or anything
-	//	return fmt.Errorf("unsupported desktop wallpaper mode for the X11 backend: %s", x.mode)
-	//}
+	var modeflag string
+	switch x.mode {
+	case "center":
+		modeflag = "--center"
+	case "zoom", "zoomed":
+		modeflag = "--zoom"
+	case "fit":
+		modeflag = "--fit-auto"
+	case "fill", "max", "":
+		modeflag = "--fit-auto"
+	case "scale", "scaled", "stretch", "stretched":
+		modeflag = "--stretch"
+	case "tile", "tiled":
+		modeflag = "--tiled"
+	default:
+		x.mut.Unlock()
+		return fmt.Errorf("unsupported desktop wallpaper mode for the X11 backend: %s", x.mode)
+	}
 
 	x.mut.Unlock()
 	x.mut.RLock()
@@ -142,7 +145,7 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 		fmt.Fprintf(os.Stderr, "X11: unable to open display '%s'\n", C.GoString(C.XDisplayName(nil)))
 	}
 
-	args := []string{"prog", imageFilename}
+	args := []string{"setroot", modeflag, imageFilename}
 
 	// Prepare argv for C
 	// Thanks James, https://stackoverflow.com/a/21158598/131264
