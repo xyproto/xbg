@@ -11,7 +11,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"unsafe"
 )
@@ -142,8 +141,12 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 
 	xdpy := (*C.Display)(C.XOpenDisplay(nil))
 	if xdpy == nil {
-		fmt.Fprintf(os.Stderr, "X11: unable to open display '%s'\n", C.GoString(C.XDisplayName(nil)))
+		return fmt.Errorf("X11: unable to open display '%s'\n", C.GoString(C.XDisplayName(nil)))
 	}
+
+	//f, err := ioutil.TempFile("/tmp", "_setroot*.png")
+	//if err != nil {
+	//}
 
 	args := []string{"setroot", modeflag, imageFilename}
 
@@ -156,7 +159,12 @@ func (x *X11) SetWallpaper(imageFilename string) error {
 		argv[i] = cs
 	}
 
-	retval := C.setroot_main(2, &argv[0])
+	C.XInitThreads()
+	C.XLockDisplay(xdpy)
+
+	retval := C.setroot_main(C.int(len(args)), &argv[0])
+
+	C.XUnlockDisplay(xdpy)
 
 	// Set the background image, and intepret the returned string as a Go string
 	//errString := C.GoString(C.SetBackground(cFilename, C.bool(x.rotate), mode, C.bool(x.verbose)))
