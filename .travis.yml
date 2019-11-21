@@ -13,3 +13,6 @@ go:
     - "1.11"
     - "1.12"
     - "1.13"
+
+before_script:
+  - go generate
